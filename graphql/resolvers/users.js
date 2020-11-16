@@ -4,10 +4,73 @@ const jwt = require("jsonwebtoken");
 
 const { SECRET_KEY } = require("../../config");
 const User = require("../../models/User");
-const { validateRegisterInput } = require("../utils/Validators");
+const {
+  validateRegisterInput,
+  validateLoginInput,
+} = require("../utils/Validators");
+
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+    },
+    SECRET_KEY,
+    { expiresIn: "1h" }
+  );
+};
+
+const comparePassword = (password, user, errors) => {
+  return bcrypt.compare(password, user.password).then((isMatch) => {
+    if (!isMatch) {
+      errors.general = "Wrong credentials";
+      throw new UserInputError("Wrong credentials", {
+        errors: {
+          general: "Wrong credentials",
+        },
+      });
+    }
+
+    const token = generateToken(user);
+
+    return {
+      ...user._doc,
+      id: user._id,
+      token,
+    };
+  });
+};
 
 module.exports = {
   Mutation: {
+    login(_, { username, password }, context, info) {
+      let { errors, isValid } = validateLoginInput(username, password);
+
+      if (!isValid) {
+        throw new UserInputError("Errors in input", { errors });
+      }
+
+      // Find user by username
+      return User.findOne({ username }).then((user) => {
+        if (!user) {
+          return User.findOne({ email: username }).then((user) => {
+            if (!user) {
+              errors.general = "Wrong credentials";
+              throw new UserInputError("Wrong credentials", {
+                errors: {
+                  username: "Wrong credentials",
+                },
+              });
+            }
+            return comparePassword(password, user, errors);
+          });
+        } else {
+          return comparePassword(password, user, errors);
+        }
+      });
+    },
+
     async register(
       _,
       { registerInput: { username, email, password, confirmPassword } },
@@ -54,15 +117,7 @@ module.exports = {
 
         const res = await newUser.save();
 
-        const token = jwt.sign(
-          {
-            id: res.id,
-            email: res.email,
-            username: res.username,
-          },
-          SECRET_KEY,
-          { expiresIn: "1h" }
-        );
+        const token = generateToken(res);
 
         return {
           ...res._doc,

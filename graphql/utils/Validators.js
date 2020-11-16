@@ -29,7 +29,7 @@ module.exports.validateRegisterInput = (
       errors.confirmPassword = "Passwords don't match";
     }
 
-    if (password < 6) {
+    if (password.length < 6) {
       errors.password = "Password should be at least 6 characters";
     }
   }
@@ -57,7 +57,7 @@ module.exports.validateLoginInput = (username, password) => {
   if (password === "") {
     errors.password = "password field shouldn't be empty";
   } else {
-    if (password < 6) {
+    if (password.length < 6) {
       errors.password = "Password should be at least 6 characters";
     }
   }
