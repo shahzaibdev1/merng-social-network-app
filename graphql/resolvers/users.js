@@ -9,6 +9,7 @@ const {
   validateLoginInput,
 } = require("../utils/Validators");
 
+// Generate Auth token
 const generateToken = (user) => {
   return jwt.sign(
     {
@@ -21,6 +22,7 @@ const generateToken = (user) => {
   );
 };
 
+// Function to compare auth hashes and generate token
 const comparePassword = (password, user, errors) => {
   return bcrypt.compare(password, user.password).then((isMatch) => {
     if (!isMatch) {
@@ -77,7 +79,7 @@ module.exports = {
       context,
       info
     ) {
-      // TODO: Validate User Data
+      // Validate User Data
       let { isValid, errors } = validateRegisterInput(
         username,
         email,
@@ -88,7 +90,7 @@ module.exports = {
       if (!isValid) {
         throw new UserInputError("Errors in input", { errors });
       }
-      // TODO: Make sure user doesn't already exist
+      // Make sure user doesn't already exist
       let checkMail = await User.findOne({ email });
       if (checkMail) {
         throw new UserInputError("Email Already Exists", {
@@ -101,11 +103,12 @@ module.exports = {
         if (checkUser) {
           throw new UserInputError("User Already Exists", {
             errors: {
-              username: "This Email is already taken",
+              username: "This Username is already taken",
             },
           });
         }
-        // TODO: Hash the password and create auth token
+
+        // Hash the password and create auth token
         password = await bcrypt.hash(password, 8);
 
         const newUser = new User({
